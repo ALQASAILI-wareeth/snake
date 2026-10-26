@@ -40,6 +40,14 @@ button:focus-visible{outline:3px solid var(--food);outline-offset:2px}
 .pad button{flex:1;height:96px;user-select:none;touch-action:manipulation;padding:0;font-size:2.2rem;background:var(--card);color:var(--ink)}
 .pad button:active{background:var(--snake);color:var(--bg)}
 .hint{color:var(--muted);font-size:.85rem;margin:0}
+html,body{overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+body{transition:background .3s,color .3s}
+canvas{box-shadow:0 10px 28px rgba(0,0,0,.22),0 0 0 4px var(--grid)}
+.stat{box-shadow:inset 0 0 0 1px var(--grid)}
+button{transition:transform .06s,background .15s;-webkit-appearance:none;appearance:none}
+.chip,.opts select{box-shadow:inset 0 0 0 1px var(--grid)}
+.pad button{box-shadow:0 4px 0 var(--grid),inset 0 0 0 1px var(--grid);border-radius:18px}
+.pad button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--grid)}
 .opts{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:min(92vw,420px)}
 .chip,.opts select{font:inherit;background:var(--card);color:var(--ink);border:0;border-radius:12px;padding:8px 12px;display:flex;align-items:center;gap:6px}
 </style>
@@ -57,7 +65,7 @@ button:focus-visible{outline:3px solid var(--food);outline-offset:2px}
 <p class="hint" id="st" style="min-height:1.3em"></p>
 <div class="opts">
   <select id="lvl" aria-label="الصعوبة"><option value="e">سهل</option><option value="m" selected>متوسط</option><option value="h">صعب</option></select>
-  <select id="theme" aria-label="الألوان"><option value="forest">🌿 الغابة</option><option value="ocean">🌊 المحيط</option><option value="sunset">🌇 الغروب</option><option value="neon">⚡ النيون</option></select>
+  <select id="theme" aria-label="الألوان"><option value="forest">🌿 الغابة</option><option value="ocean">🌊 المحيط</option><option value="sunset">🌇 الغروب</option><option value="neon">⚡ النيون</option><option value="nokia">🟩 نوكيا</option><option value="midnight">🌙 ليلي</option><option value="rose">🌸 وردي</option><option value="desert">🏜️ الصحراء</option><option value="gold">👑 ذهبي</option></select>
   <label class="chip"><input type="checkbox" id="rocks"> عقبات</label>
   <label class="chip"><input type="checkbox" id="wrap"> بدون جدران</label>
   <button class="chip" id="pz" aria-label="إيقاف مؤقت">⏸</button>
@@ -71,14 +79,14 @@ button:focus-visible{outline:3px solid var(--food);outline-offset:2px}
 <p class="hint">مسافة للإيقاف المؤقت</p>
 <script>
 (function(){
-  var N=20, cv=document.getElementById('c'), ctx=cv.getContext('2d'), S=cv.width/N;
+  var N=20, L=420, cv=document.getElementById('c'), ctx=cv.getContext('2d'), DPR=Math.min(window.devicePixelRatio||1,3), S=L/N;cv.width=cv.height=Math.round(L*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);
   var sc=document.getElementById('score'), bestEl=document.getElementById('best'), lvl=document.getElementById('lvl'), wrapEl=document.getElementById('wrap'), rockEl=document.getElementById('rocks');
   var ov=document.getElementById('ov'), ovt=document.getElementById('ovt'), ovs=document.getElementById('ovs'), go=document.getElementById('go');
   var V={U:[0,-1],D:[0,1],L:[-1,0],R:[1,0]};
   var snake,dir,next,food,score,best=0,timer,running=false,paused=false,bonus=null,muted=false,ac=null,rocks=[],pw=null,slowT=0,shield=false,prev=null,lastT=0,intv=120,fx=[],queue=[],counting=false,cdN=0;
   try{best=+localStorage.getItem('snakeBest')||0}catch(e){}
   bestEl.textContent=best;
-  function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+  var PIX=false,PAL={};function css(n){return PAL[n]||(PAL[n]=getComputedStyle(document.documentElement).getPropertyValue(n).trim())}
   function beep(f,l,w,f2){if(muted)return;try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state!=='running')ac.resume();var t=ac.currentTime+(w||0),d=l||.06,o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);var v=f>2000?.3:.12;g.gain.setValueAtTime(v,t);g.gain.setValueAtTime(v,t+d-.008);g.gain.linearRampToValueAtTime(0,t+d);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+d+.01)}catch(e){}}
   function tune(a){var w=0;a.forEach(function(n){if(n[0])beep(n[0],n[1],w,n[2]);w+=n[1]})}
   function spawnBonus(){var p;do{p=[Math.floor(Math.random()*N),Math.floor(Math.random()*N)]}while(snake.some(function(s){return s[0]==p[0]&&s[1]==p[1]})||(p[0]==food[0]&&p[1]==food[1])||hasRock(p));bonus=[p[0],p[1],45]}
@@ -133,24 +141,24 @@ button:focus-visible{outline:3px solid var(--food);outline-offset:2px}
     stat();
     draw();
   }
-  function draw(){var t=1;if(running&&!paused&&!counting&&prev)t=Math.min(1,(performance.now()-lastT)/intv);drawBase(t);if(counting&&cdN>0){ctx.globalAlpha=1;ctx.fillStyle=css('--ink');ctx.font='bold '+(S*4)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(cdN,cv.width/2,cv.height/2)}drawFx()}
+  function draw(){var t=1;if(running&&!paused&&!counting&&prev)t=Math.min(1,(performance.now()-lastT)/intv);drawBase(t);if(counting&&cdN>0){ctx.globalAlpha=1;ctx.fillStyle=css('--ink');ctx.font='bold '+(S*4)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(cdN,L/2,L/2)}drawFx()}
   function drawBase(t){
-    ctx.clearRect(0,0,cv.width,cv.height);
+    ctx.clearRect(0,0,L,L);
     ctx.fillStyle=css('--grid');
-    for(var x=0;x<N;x++)for(var y=0;y<N;y++)if((x+y)%2)ctx.fillRect(x*S,y*S,S,S);
-    ctx.fillStyle=css('--food');ctx.beginPath();ctx.arc(food[0]*S+S/2,food[1]*S+S/2,S*.38,0,7);ctx.fill();
+    if(!PIX)for(var x=0;x<N;x++)for(var y=0;y<N;y++)if((x+y)%2)ctx.fillRect(x*S,y*S,S,S);
+    ctx.fillStyle=css('--food');ctx.beginPath();if(PIX){var qx=food[0]*S+S/2,qy=food[1]*S+S/2,qr=S*.42;ctx.moveTo(qx,qy-qr);ctx.lineTo(qx+qr,qy);ctx.lineTo(qx,qy+qr);ctx.lineTo(qx-qr,qy)}else ctx.arc(food[0]*S+S/2,food[1]*S+S/2,S*.38,0,7);ctx.fill();
     if(bonus){ctx.fillStyle='#F2B705';ctx.beginPath();ctx.arc(bonus[0]*S+S/2,bonus[1]*S+S/2,S*(bonus[2]<12&&bonus[2]%2?.25:.44),0,7);ctx.fill()}
     if(pw){ctx.font=(S*.8)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';if(!(pw[2]<12&&pw[2]%2))ctx.fillText(pw[3]=='s'?'⏱️':'🛡️',pw[0]*S+S/2,pw[1]*S+S/2+1)}
     ctx.fillStyle=css('--muted');rocks.forEach(function(r){ctx.beginPath();ctx.roundRect(r[0]*S+2,r[1]*S+2,S-4,S-4,5);ctx.fill()});
     snake.forEach(function(s0,i){var s=pos(s0,i,t);
-      ctx.globalAlpha=i?Math.max(.5,1-i*.03):1;ctx.fillStyle=i?css('--snake'):css('--head');
-      var p=i?2:1;ctx.beginPath();ctx.roundRect(s[0]*S+p,s[1]*S+p,S-2*p,S-2*p,6);ctx.fill();ctx.globalAlpha=1;if(!i){eyes(s);if(shield){ctx.strokeStyle='#4DA3FF';ctx.lineWidth=3;ctx.beginPath();ctx.arc(s[0]*S+S/2,s[1]*S+S/2,S*.55,0,7);ctx.stroke()}}
+      ctx.globalAlpha=(i&&!PIX)?Math.max(.5,1-i*.03):1;ctx.fillStyle=i?css('--snake'):css('--head');
+      var p=i?2:1;ctx.beginPath();ctx.roundRect(s[0]*S+p,s[1]*S+p,S-2*p,S-2*p,PIX?1:6);ctx.fill();ctx.globalAlpha=1;if(!i){if(!PIX)eyes(s);if(shield){ctx.strokeStyle='#4DA3FF';ctx.lineWidth=3;ctx.beginPath();ctx.arc(s[0]*S+S/2,s[1]*S+S/2,S*.55,0,7);ctx.stroke()}}
     });
   }
   function turn(k){
     if(!running||paused||counting)return;var lp=queue.length?queue[queue.length-1]:next;
     var opp={U:'D',D:'U',L:'R',R:'L'};
-    if(k!==lp&&k!==opp[lp]&&queue.length<2){queue.push(k);refresh();beep(900,.1)}
+    if(k!==lp&&k!==opp[lp]&&queue.length<2){queue.push(k);refresh();beep(900,.1);if(navigator.vibrate)navigator.vibrate(8)}
   }
   document.addEventListener('keydown',function(e){
     var m={ArrowUp:'U',ArrowDown:'D',ArrowLeft:'L',ArrowRight:'R',w:'U',s:'D',a:'L',d:'R'};
@@ -167,6 +175,7 @@ button:focus-visible{outline:3px solid var(--food);outline-offset:2px}
   });
   var sx,sy;
   cv.addEventListener('touchstart',function(e){sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
+  cv.addEventListener('touchmove',function(e){var t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;if(Math.max(Math.abs(dx),Math.abs(dy))<18)return;turn(Math.abs(dx)>Math.abs(dy)?(dx>0?'R':'L'):(dy>0?'D':'U'));sx=t.clientX;sy=t.clientY;e.preventDefault()},{passive:false});
   cv.addEventListener('touchend',function(e){
     var dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
     if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;
@@ -178,13 +187,15 @@ button:focus-visible{outline:3px solid var(--food);outline-offset:2px}
   var fsb=document.getElementById('fs'),de=document.documentElement;if(!(de.requestFullscreen||de.webkitRequestFullscreen))fsb.style.display='none';
   fsb.addEventListener('click',function(){try{if(document.fullscreenElement||document.webkitFullscreenElement){(document.exitFullscreen||document.webkitExitFullscreen).call(document)}else{(de.requestFullscreen||de.webkitRequestFullscreen).call(de)}}catch(e){}});
   var mb=document.getElementById('mute');mb.addEventListener('click',function(){muted=!muted;mb.textContent=muted?'🔇':'🔊'});
-  var TH={ocean:{'--bg':'#E3F0F7','--board':'#CFE6F2','--grid':'#BDDCEC','--snake':'#1F6E9C','--head':'#0F4568','--food':'#F08A24','--ink':'#112A3A','--muted':'#4F7088','--card':'#F2F9FC'},sunset:{'--bg':'#FBEBDD','--board':'#F5D9C3','--grid':'#EFCBB0','--snake':'#B5473A','--head':'#7A2420','--food':'#6B4CC2','--ink':'#3A1D16','--muted':'#8A5E50','--card':'#FFF6EE'},neon:{'--bg':'#0B0B1A','--board':'#14142B','--grid':'#1B1B38','--snake':'#19F0C1','--head':'#FFFFFF','--food':'#FF3D81','--ink':'#EDEDFF','--muted':'#8A8AB8','--card':'#1A1A33'}},KEYS=['--bg','--board','--grid','--snake','--head','--food','--ink','--muted','--card'];
-  function applyTheme(n){var st=document.documentElement.style;KEYS.forEach(function(k){st.removeProperty(k)});var t=TH[n];if(t)for(var k in t)st.setProperty(k,t[k])}
+  var TH={ocean:{'--bg':'#E3F0F7','--board':'#CFE6F2','--grid':'#BDDCEC','--snake':'#1F6E9C','--head':'#0F4568','--food':'#F08A24','--ink':'#112A3A','--muted':'#4F7088','--card':'#F2F9FC'},sunset:{'--bg':'#FBEBDD','--board':'#F5D9C3','--grid':'#EFCBB0','--snake':'#B5473A','--head':'#7A2420','--food':'#6B4CC2','--ink':'#3A1D16','--muted':'#8A5E50','--card':'#FFF6EE'},neon:{'--bg':'#0B0B1A','--board':'#14142B','--grid':'#1B1B38','--snake':'#19F0C1','--head':'#FFFFFF','--food':'#FF3D81','--ink':'#EDEDFF','--muted':'#8A8AB8','--card':'#1A1A33'},nokia:{'--bg':'#2A3A0C','--board':'#A9BF2F','--grid':'#9DB327','--snake':'#1B2608','--head':'#0A1003','--food':'#1B2608','--ink':'#C8DC5A','--muted':'#8FA43A','--card':'#3A4D12'},midnight:{'--bg':'#0E1020','--board':'#161A33','--grid':'#1C2142','--snake':'#6C8CFF','--head':'#DCE4FF','--food':'#FFB454','--ink':'#E8ECFF','--muted':'#8B93C4','--card':'#1A1F3D'},rose:{'--bg':'#FCE9EE','--board':'#F8D3DE','--grid':'#F2C2D1','--snake':'#B03A6B','--head':'#7A1F47','--food':'#2E8B6F','--ink':'#3D1226','--muted':'#96506C','--card':'#FFF5F8'}},KEYS=['--bg','--board','--grid','--snake','--head','--food','--ink','--muted','--card'];
+  Object.assign(TH,{desert:{'--bg':'#F3E7D0','--board':'#E8D5AE','--grid':'#DEC99B','--snake':'#7A4B1E','--head':'#4A2A0E','--food':'#C0392B','--ink':'#3B2412','--muted':'#8A6A44','--card':'#FBF3E2'},gold:{'--bg':'#14110A','--board':'#1E1A10','--grid':'#262014','--snake':'#E0B84A','--head':'#FFF1C2','--food':'#E5484D','--ink':'#F4EBD0','--muted':'#A8996B','--card':'#1A160C'}});
+  function applyTheme(n){PAL={};PIX=(n=='nokia');var st=document.documentElement.style;KEYS.forEach(function(k){st.removeProperty(k)});var t=TH[n];if(t)for(var k in t)st.setProperty(k,t[k]);var mt=document.querySelector('meta[name=theme-color]');if(mt)mt.content=css('--bg')}
   var thEl=document.getElementById('theme');
   try{var sv=localStorage.getItem('snakeTheme');if(sv&&(sv=='forest'||TH[sv])){thEl.value=sv;applyTheme(sv)}}catch(e){}
   thEl.addEventListener('change',function(){applyTheme(thEl.value);try{localStorage.setItem('snakeTheme',thEl.value)}catch(e){}if(snake)draw()});
   document.addEventListener('visibilitychange',function(){if(document.hidden&&running&&!paused&&!counting)document.dispatchEvent(new KeyboardEvent('keydown',{key:' '}))});
   requestAnimationFrame(frame);
+  try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){PAL={};if(snake)draw()})}catch(e){}
   go.addEventListener('click',start);
   reset();draw();
 })();
