@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>لعبة الثعبان</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&display=swap">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
@@ -50,10 +53,21 @@ button{transition:transform .06s,background .15s;-webkit-appearance:none;appeara
 .pad button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--grid)}
 .opts{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:min(92vw,420px)}
 .chip,.opts select{font:inherit;background:var(--card);color:var(--ink);border:0;border-radius:12px;padding:8px 12px;display:flex;align-items:center;gap:6px}
+:root{--w:max(190px,min(96vw,calc(100dvh - 400px),560px))}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+body{position:fixed;inset:0;min-height:0;justify-content:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 8px) 12px calc(env(safe-area-inset-bottom,0px) + 8px)}
+h1{font-size:1.35rem}
+.bar,.wrap,.opts{width:var(--w)}
+.pad button{height:clamp(76px,12dvh,112px)}
+.verse{font-family:'Aref Ruqaa','Amiri','Scheherazade New',serif;text-align:center;line-height:1.5;font-size:clamp(1.05rem,3.2dvh,1.5rem);color:var(--ink);margin:0}
+.verse span{display:block}
+.verse .o{color:var(--food);font-size:.7em;line-height:1}
+@media (hover:none){.kb{display:none}}
 </style>
 </head>
 <body>
 <h1>لعبة الثعبان</h1>
+<p class="verse" aria-label="بيت شعر"><span>علموني لعبة الدوده</span><span class="o">❖</span><span>كودها من الهم تسليني</span></p>
 <div class="bar">
   <div class="stat"><b id="score">0</b><span>النقاط</span></div>
   <div class="stat"><b id="best">0</b><span>أعلى نتيجة</span></div>
@@ -76,7 +90,7 @@ button{transition:transform .06s,background .15s;-webkit-appearance:none;appeara
   <button data-k="l" aria-label="زر اليسار: يسار ثم أسفل">◀</button>
   <button data-k="r" aria-label="زر اليمين: أعلى ثم يمين">▲</button>
 </div>
-<p class="hint">مسافة للإيقاف المؤقت</p>
+<p class="hint kb">مسافة للإيقاف المؤقت</p>
 <script>
 (function(){
   var N=20, L=420, cv=document.getElementById('c'), ctx=cv.getContext('2d'), DPR=Math.min(window.devicePixelRatio||1,3), S=L/N;cv.width=cv.height=Math.round(L*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);
